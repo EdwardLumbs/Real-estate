@@ -9,7 +9,8 @@ export const test = (req, res) => {
 }
 
 export const updateUser = async (req, res, next) => {
-    if(req.user.id !== req.params.id) return next(errorHandler(401, "Not your account"))
+    if(req.user.id !== req.params.id) 
+        return next(errorHandler(401, "Not your account"))
 
     try {
         if (req.body.password) {
@@ -25,7 +26,7 @@ export const updateUser = async (req, res, next) => {
             }
         }, {new: true})
 
-        const {password, ...rest} = updateUser._doc
+        const {password, ...rest} = updatedUser._doc
 
         res.status(200).json(rest)
     } catch (err) {
