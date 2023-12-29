@@ -89,3 +89,16 @@ export const signOut = (req, res, next) => {
         next(err)
     }
 }
+
+export const checkCookie = (req, res, next) => {
+    try {
+        const cookie = req.cookies.access_token
+        if (!cookie) {
+            res.json({'status' : false})
+        }
+
+        res.json({'status' : true})
+    } catch (err) {
+        next(err)
+    }
+}
