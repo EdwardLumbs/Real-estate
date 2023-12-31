@@ -35,11 +35,14 @@ export const signin = async (req, res, next) => {
             return next(errorHandler(401, 'Wrong credentials'))
         }
 
-        const token = jwt.sign({id: validUser._id}, process.env.JWT_SECRET)
+        const token = jwt.sign({id: validUser._id}, process.env.JWT_SECRET, { expiresIn: '1h' })
+        const refreshToken = jwt.sign({id: validUser._id}, process.env.REFRESH_SECRET,  { expiresIn: '1d' })
+        
         const {password: pass, ...rest} = validUser._doc
         
         res
-            .cookie('access_token', token, { httpOnly: true })
+            .cookie('access_token', token, {maxAge: 3600000, httpOnly: true, sameSite: 'strict' })
+            .cookie('refresh_token', refreshToken, { httpOnly: true, sameSite: 'strict' })
             .status(200)
             .json(rest)
 
@@ -52,12 +55,17 @@ export const google = async (req, res, next) => {
     try {
         const user = await User.findOne({email: req.body.email})
         if(user) {
-            const token = jwt.sign({id: user._id}, process.env.JWT_SECRET)
-            const { password: pass, ...rest} = user._doc
+            const token = jwt.sign({id: user._id}, process.env.JWT_SECRET, { expiresIn: '1h' })
+            const refreshToken = jwt.sign({id: user._id}, process.env.REFRESH_SECRET,  { expiresIn: '1d' })
+            
+            const { password: pass, ...rest } = user._doc
+            
             res
-                .cookie('access_token', token, { httpOnly: true })
+                .cookie('access_token', token, {maxAge: 3600000, httpOnly: true, sameSite: 'strict' })
+                .cookie('refresh_token', refreshToken, { httpOnly: true, sameSite: 'strict' })
                 .status(200)
                 .json(rest)
+
         } else {
             const generatedPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
             const hashedPassword = bcryptjs.hashSync(generatedPassword, 10)
@@ -68,11 +76,15 @@ export const google = async (req, res, next) => {
                 avatar: req.body.photo
             })
             await newUser.save()
-            const token = jwt.sign({ id: newUser._id}, process.env.JWT_SECRET)
-            const { password: pass, ...rest} = newUser._doc
+           
+            const token = jwt.sign({id: newUser._id}, process.env.JWT_SECRET, { expiresIn: '1h' })
+            const refreshToken = jwt.sign({id: newUser._id}, process.env.REFRESH_SECRET,  { expiresIn: '1d' })
+            
+            const {password: pass, ...rest} = newUser._doc
             
             res
-                .cookie('access_token', token, { httpOnly: true })
+                .cookie('access_token', token, {maxAge: 3600000, httpOnly: true, sameSite: 'strict' })
+                .cookie('refresh_token', refreshToken, { httpOnly: true, sameSite: 'strict' })
                 .status(200)
                 .json(rest)
         }
@@ -84,6 +96,7 @@ export const google = async (req, res, next) => {
 export const signOut = (req, res, next) => {
     try {
         res.clearCookie('access_token')
+        res.clearCookie('refresh_token')
         res.status(200).json('User has been logged out!')
     } catch (err) {
         next(err)
@@ -92,12 +105,12 @@ export const signOut = (req, res, next) => {
 
 export const checkCookie = (req, res, next) => {
     try {
-        const cookie = req.cookies.access_token
+        const cookie = req.cookies.refresh_token
         if (!cookie) {
             res.json({'status' : false})
+        } else {
+            res.json({'status' : true})
         }
-
-        res.json({'status' : true})
     } catch (err) {
         next(err)
     }
